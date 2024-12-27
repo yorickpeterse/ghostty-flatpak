@@ -1,0 +1,51 @@
+---
+id: com.mitchellh.ghostty
+runtime: org.gnome.Platform
+runtime-version: '47'
+sdk: org.gnome.Sdk
+sdk-extensions:
+  - org.freedesktop.Sdk.Extension.ziglang
+command: ghostty
+finish-args:
+  - "--allow=devel"
+  - "--device=dri"
+  - "--filesystem=host"
+  - "--share=ipc"
+  - "--share=network"
+  - "--socket=fallback-x11"
+  - "--socket=wayland"
+  - "--talk-name=org.freedesktop.Flatpak"
+modules:
+  - name: ghostty
+    buildsystem: simple
+    build-options:
+      append-path: /usr/lib/sdk/ziglang
+    build-commands:
+      - cd ghostty && patch -p1 --forward < ../flatpak.patch
+      - tar -xf vendor.tar.gz -C ghostty
+      # The listed integrations are _disabled_ such that we _do_ build them from
+      # source. This way we don't have to add each library as an explicit
+      # dependency, simplifying the build process.
+      - cd ghostty && zig build
+        -Doptimize=ReleaseFast
+        -Dgtk-adwaita=true
+        -Dcpu=baseline
+        -Dflatpak=true
+        -Demit-docs=false
+        --system $PWD/vendor/p
+        -fno-sys=freetype
+        -fno-sys=harfbuzz
+        -fno-sys=fontconfig
+        -fno-sys=libpng
+        -fno-sys=zlib
+        -fno-sys=oniguruma
+        -fno-sys=libxml2
+        --prefix /app
+      - install -Dm644 ${FLATPAK_ID}.metainfo.xml -t /app/share/metainfo/
+    sources:
+      - type: archive
+        url: https://release.files.ghostty.org/1.0.0/ghostty-source.tar.gz
+        sha256: 7fcb5fed08bd23d54be138af4f63a78cf5addddbe40322465b520cf14c46f181
+        dest: ghostty
+      - type: dir
+        path: data

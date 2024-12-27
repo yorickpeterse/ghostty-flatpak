@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <component type="desktop-application">
-  <id>org.ghostty.ghostty</id>
+  <id>com.mitchellh.ghostty</id>
   <name>Ghostty</name>
   <summary>
     Ghostty is a fast, feature-rich, and cross-platform terminal emulator that
@@ -16,5 +16,5 @@
       features, or native UIs. Ghostty provides all three.
     </p>
   </description>
-  <launchable type="desktop-id">org.ghostty.ghostty.desktop</launchable>
+  <launchable type="desktop-id">com.mitchellh.ghostty.desktop</launchable>
 </component>
