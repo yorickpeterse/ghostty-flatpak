@@ -1,0 +1,47 @@
+---
+id: org.ghostty.ghostty
+runtime: org.gnome.Platform
+runtime-version: '47'
+sdk: org.gnome.Sdk
+sdk-extensions:
+  - org.freedesktop.Sdk.Extension.ziglang
+command: ghostty
+# Enable network access such that `zig build` can download the dependencies.
+# Refer to https://github.com/ghostty-org/ghostty/discussions/3201 for details
+# as to why we can't do offline builds (for now).
+build-options:
+  build-args:
+    - "--share=network"
+finish-args:
+  - "--allow=devel"
+  - "--device=dri"
+  - "--filesystem=host"
+  - "--share=ipc"
+  - "--share=network"
+  - "--socket=fallback-x11"
+  - "--socket=wayland"
+  - "--talk-name=org.gtk.vfs.*"
+modules:
+  - name: ghostty
+    buildsystem: simple
+    build-options:
+      append-path: /usr/lib/sdk/ziglang
+    build-commands:
+      # Uncomment to build using vendored dependencies (and comment out the
+      # other zig build command)
+      # - cd ghostty && patch -p1 --forward < ../disable-docs.patch
+      # - tar -xf vendor.tar.gz -C ghostty
+      # - cd ghostty && zig build -Doptimize=ReleaseFast -Dgtk-adwaita=true -Dcpu=baseline --system vendor/p -p /app
+      - cd ghostty && zig build -Doptimize=ReleaseFast -Dgtk-adwaita=true -Dcpu=baseline -p /app
+      - install -Dm644 ${FLATPAK_ID}.metainfo.xml -t /app/share/metainfo/
+      - install -Dm644 ${FLATPAK_ID}.desktop -t /app/share/applications/
+      - install -Dm644 ghostty/images/icons/icon_128.png /app/share/icons/hicolor/128x128/apps/${FLATPAK_ID}.png
+      - install -Dm644 ghostty/images/icons/icon_256.png /app/share/icons/hicolor/256x256/apps/${FLATPAK_ID}.png
+      - install -Dm644 ghostty/images/icons/icon_512.png /app/share/icons/hicolor/512x512/apps/${FLATPAK_ID}.png
+    sources:
+      - type: archive
+        url: https://release.files.ghostty.org/1.0.0/ghostty-source.tar.gz
+        sha256: 7fcb5fed08bd23d54be138af4f63a78cf5addddbe40322465b520cf14c46f181
+        dest: ghostty
+      - type: dir
+        path: data

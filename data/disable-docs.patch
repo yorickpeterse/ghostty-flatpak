@@ -1,0 +1,13 @@
+diff --git a/build.zig b/build.zig
+index b1b992fe..ff4c65b7 100644
+--- a/build.zig
++++ b/build.zig
+@@ -144,7 +144,7 @@ pub fn build(b: *std.Build) !void {
+         if (emit_bench or emit_test_exe or emit_helpgen) break :emit_docs false;
+
+         // We always emit docs in system package mode.
+-        if (system_package) break :emit_docs true;
++        // if (system_package) break :emit_docs true;
+
+         // We only default to true if we can find pandoc.
+         const path = Command.expandPath(b.allocator, "pandoc") catch
