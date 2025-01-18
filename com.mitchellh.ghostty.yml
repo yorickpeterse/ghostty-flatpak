@@ -6,6 +6,8 @@ sdk: org.gnome.Sdk
 sdk-extensions:
   - org.freedesktop.Sdk.Extension.ziglang
 command: ghostty
+build-options:
+  no-debuginfo: true
 finish-args:
   - "--allow=devel"
   - "--device=dri"
@@ -21,8 +23,6 @@ modules:
     build-options:
       append-path: /usr/lib/sdk/ziglang
     build-commands:
-      - cd ghostty && patch -p1 --forward < ../flatpak.patch
-      - tar -xf vendor.tar.gz -C ghostty
       # The listed integrations are _disabled_ such that we _do_ build them from
       # source. This way we don't have to add each library as an explicit
       # dependency, simplifying the build process.
@@ -30,7 +30,6 @@ modules:
         -Doptimize=ReleaseFast
         -Dgtk-adwaita=true
         -Dcpu=baseline
-        -Dflatpak=true
         -Demit-docs=false
         --system $PWD/vendor/p
         -fno-sys=freetype
@@ -41,11 +40,17 @@ modules:
         -fno-sys=oniguruma
         -fno-sys=libxml2
         --prefix /app
+      # 1024x1024 icons aren't supported by Flatpak, so we need to remove it.
+      - rm /app/share/icons/hicolor/1024x1024/apps/com.mitchellh.ghostty.png
       - install -Dm644 ${FLATPAK_ID}.metainfo.xml -t /app/share/metainfo/
     sources:
-      - type: archive
-        url: https://release.files.ghostty.org/1.0.0/ghostty-source.tar.gz
-        sha256: 7fcb5fed08bd23d54be138af4f63a78cf5addddbe40322465b520cf14c46f181
-        dest: ghostty
       - type: dir
         path: data
+      - type: archive
+        url: https://release.files.ghostty.org/1.0.1/ghostty-1.0.1.tar.gz
+        sha256: 273d9885d4434a01c8ecb4f6517019254aa3e499239f69e228d4032944701a42
+        dest: ghostty
+      - type: archive
+        url: https://github.com/yorickpeterse/ghostty-flatpak/releases/download/1.0.1/vendor.tar.zst
+        sha256: 01208afdf0a0e06b9558604f20432c62e56608cd8ebfea553f45877c4531e2e8
+        dest: ghostty/vendor

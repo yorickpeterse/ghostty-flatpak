@@ -1,5 +1,4 @@
 /.flatpak-builder
 /builddir
-/ghostty-source
-/data/vendor.tar.gz
 /repo
+/tmp
