@@ -18,19 +18,34 @@ finish-args:
   - "--socket=wayland"
   - "--talk-name=org.freedesktop.Flatpak"
 modules:
+  - name: blueprint-compiler
+    buildsystem: meson
+    cleanup:
+      - '*'
+    sources:
+      - type: git
+        url: https://gitlab.gnome.org/jwestman/blueprint-compiler
+        tag: v0.16.0
+  - name: gtk4-layer-shell
+    buildsystem: meson
+    sources:
+      - type: git
+        url: https://github.com/wmww/gtk4-layer-shell.git
+        tag: v1.1.0
   - name: ghostty
     buildsystem: simple
     build-options:
       append-path: /usr/lib/sdk/ziglang
     build-commands:
+      - cd ghostty && patch -p1 --forward < ../fix-exec-env.patch
       # The listed integrations are _disabled_ such that we _do_ build them from
       # source. This way we don't have to add each library as an explicit
       # dependency, simplifying the build process.
       - cd ghostty && zig build
         -Doptimize=ReleaseFast
-        -Dgtk-adwaita=true
         -Dcpu=baseline
         -Demit-docs=false
+        -Dflatpak=true
         --system $PWD/vendor/p
         -fno-sys=freetype
         -fno-sys=harfbuzz
@@ -40,17 +55,213 @@ modules:
         -fno-sys=oniguruma
         -fno-sys=libxml2
         --prefix /app
-      # 1024x1024 icons aren't supported by Flatpak, so we need to remove it.
-      - rm /app/share/icons/hicolor/1024x1024/apps/com.mitchellh.ghostty.png
+        --search-prefix /app
       - install -Dm644 ${FLATPAK_ID}.metainfo.xml -t /app/share/metainfo/
     sources:
       - type: dir
         path: data
       - type: archive
-        url: https://release.files.ghostty.org/1.0.1/ghostty-1.0.1.tar.gz
-        sha256: 273d9885d4434a01c8ecb4f6517019254aa3e499239f69e228d4032944701a42
+        url: https://github.com/ghostty-org/ghostty/releases/download/tip/ghostty-source.tar.gz
+        sha256: 3791e5dc68f646858609793e5ee20ffff2db781bbd1cd39b1b9960b09b0b7661
         dest: ghostty
-      - type: archive
-        url: https://github.com/yorickpeterse/ghostty-flatpak/releases/download/1.0.1/vendor.tar.zst
-        sha256: 01208afdf0a0e06b9558604f20432c62e56608cd8ebfea553f45877c4531e2e8
-        dest: ghostty/vendor
+      # Zig dependencies
+      - name: breakpad
+        type: archive
+        url: https://github.com/getsentry/breakpad/archive/b99f444ba5f6b98cac261cbb391d8766b34a5918.tar.gz
+        sha256: 6cca98943d1a990766cef61077c09aff5938063fe17a1efe1228e5412b6d6ad9
+        dest: ghostty/vendor/p/12207fd37bb8251919c112dcdd8f616a491857b34a451f7e4486490077206dc2a1ea
+      - name: fontconfig
+        type: archive
+        url: https://deps.files.ghostty.org/fontconfig-2.14.2.tar.gz
+        sha256: 3ba2dd92158718acec5caaf1a716043b5aa055c27b081d914af3ccb40dce8a55
+        dest: ghostty/vendor/p/12201149afb3326c56c05bb0a577f54f76ac20deece63aa2f5cd6ff31a4fa4fcb3b7
+      - name: freetype
+        type: archive
+        url: https://deps.files.ghostty.org/freetype-1220b81f6ecfb3fd222f76cf9106fecfa6554ab07ec7fdc4124b9bb063ae2adf969d.tar.gz
+        sha256: 427201f5d5151670d05c1f5b45bef5dda1f2e7dd971ef54f0feaaa7ffd2ab90c
+        dest: ghostty/vendor/p/1220b81f6ecfb3fd222f76cf9106fecfa6554ab07ec7fdc4124b9bb063ae2adf969d
+      - name: gettext
+        type: archive
+        url: https://deps.files.ghostty.org/gettext-0.24.tar.gz
+        sha256: c918503d593d70daf4844d175a13d816afacb667c06fba1ec9dcd5002c1518b7
+        dest: ghostty/vendor/p/1220f870c853529233ea64a108acaaa81f8d06d7ff4b66c76930be7d78d508aff7a2
+      - name: glfw
+        type: archive
+        url: https://github.com/mitchellh/glfw/archive/b552c6ec47326b94015feddb36058ea567b87159.tar.gz
+        sha256: 21e05500e426b7216a571cee5cf7a4d689ee3f021a99c3b262dc6a2a93c44235
+        dest: ghostty/vendor/p/1220736fa4ba211162c7a0e46cc8fe04d95921927688bff64ab5da7420d098a7272d
+      - name: glslang
+        type: archive
+        url: https://deps.files.ghostty.org/glslang-12201278a1a05c0ce0b6eb6026c65cd3e9247aa041b1c260324bf29cee559dd23ba1.tar.gz
+        sha256: 14a2edbb509cb3e51a9a53e3f5e435dbf5971604b4b833e63e6076e8c0a997b5
+        dest: ghostty/vendor/p/12201278a1a05c0ce0b6eb6026c65cd3e9247aa041b1c260324bf29cee559dd23ba1
+      - name: gobject
+        type: archive
+        url: https://deps.files.ghostty.org/gobject-12208d70ee791d7ef7e16e1c3c9c1127b57f1ed066a24f87d57fc9f730c5dc394b9d.tar.zst
+        sha256: 514f7b90dbff6d9cd03cacf57638440cb6a92e0baf7c1a457d655be85b61b5c2
+        dest: ghostty/vendor/p/12208d70ee791d7ef7e16e1c3c9c1127b57f1ed066a24f87d57fc9f730c5dc394b9d
+      - name: gtk4_layer_shell
+        type: archive
+        url: https://github.com/wmww/gtk4-layer-shell/archive/refs/tags/v1.1.0.tar.gz
+        sha256: 98284281260a5eef5b4f63a55f16c4bf6a788a1020a6db037ecb0f71fa336988
+        dest: ghostty/vendor/p/12203eff4829ad8afdd828eb323d48e5ba8dbb44d224e9e314d4ab1533c2bec20f4b
+      - name: harfbuzz
+        type: archive
+        url: https://deps.files.ghostty.org/harfbuzz-1220b8588f106c996af10249bfa092c6fb2f35fbacb1505ef477a0b04a7dd1063122.tar.gz
+        sha256: 9f1ca089813b05944ad1ce8c7e018213026d35dc9bab480a21eb876838396556
+        dest: ghostty/vendor/p/1220b8588f106c996af10249bfa092c6fb2f35fbacb1505ef477a0b04a7dd1063122
+      - name: highway
+        type: archive
+        url: https://deps.files.ghostty.org/highway-12205c83b8311a24b1d5ae6d21640df04f4b0726e314337c043cde1432758cbe165b.tar.gz
+        sha256: 354a8b4539b588e70b98ec70844273e3f2741302c4c377bcc4e81b3d1866f7c9
+        dest: ghostty/vendor/p/12205c83b8311a24b1d5ae6d21640df04f4b0726e314337c043cde1432758cbe165b
+      - name: imgui
+        type: archive
+        url: https://deps.files.ghostty.org/imgui-1220bc6b9daceaf7c8c60f3c3998058045ba0c5c5f48ae255ff97776d9cd8bfc6402.tar.gz
+        sha256: a05fd01e04cf11ab781e28387c621d2e420f1e6044c8e27a25e603ea99ef7860
+        dest: ghostty/vendor/p/1220bc6b9daceaf7c8c60f3c3998058045ba0c5c5f48ae255ff97776d9cd8bfc6402
+      - name: iterm2_themes
+        type: archive
+        url: https://github.com/mbadolato/iTerm2-Color-Schemes/archive/e21d5ffd19605741d0e3e19d7c5a8c6c25648673.tar.gz
+        sha256: a72a0694a39675955b8c6a313cff8267acf08a5f0ed7680c3a5cd7d012447c07
+        dest: ghostty/vendor/p/122071ad56fd984afb4f94d441b6ea3e21f1741a0e026b02860d9a46110fac2cd109
+      - name: libpng
+        type: archive
+        url: https://deps.files.ghostty.org/libpng-1220aa013f0c83da3fb64ea6d327f9173fa008d10e28bc9349eac3463457723b1c66.tar.gz
+        sha256: fecc95b46cf05e8e3fc8a414750e0ba5aad00d89e9fdf175e94ff041caf1a03a
+        dest: ghostty/vendor/p/1220aa013f0c83da3fb64ea6d327f9173fa008d10e28bc9349eac3463457723b1c66
+      - name: libxev
+        type: archive
+        url: https://github.com/mitchellh/libxev/archive/8943932a668f338cb2c500f6e1a7396bacd8b55d.tar.gz
+        sha256: 4c6a285286f2d89f0fcb36dd287c1d1179eeedfda0e13dbf4d41e3fe4b41b0de
+        dest: ghostty/vendor/p/1220a67b584c9499154de8c96851ed8e92315452cb2027c06e2d7d07a39c6f900d1a
+      - name: libxml2
+        type: archive
+        url: https://github.com/GNOME/libxml2/archive/refs/tags/v2.11.5.tar.gz
+        sha256: 6c28059e2e3eeb42b5b4b16489e3916a6346c1095a74fee3bc65cdc5d89a6215
+        dest: ghostty/vendor/p/122032442d95c3b428ae8e526017fad881e7dc78eab4d558e9a58a80bfbd65a64f7d
+      - name: mach_glfw
+        type: archive
+        url: https://deps.files.ghostty.org/mach_glfw-12206ed982e709e565d536ce930701a8c07edfd2cfdce428683f3f2a601d37696a62.tar.gz
+        sha256: 1e15c8bd6512f3f087598e155cf1b6644a3ec1ef173a7de8e6b609090d67f0d9
+        dest: ghostty/vendor/p/12206ed982e709e565d536ce930701a8c07edfd2cfdce428683f3f2a601d37696a62
+      - name: oniguruma
+        type: archive
+        url: https://deps.files.ghostty.org/oniguruma-1220c15e72eadd0d9085a8af134904d9a0f5dfcbed5f606ad60edc60ebeccd9706bb.tar.gz
+        sha256: 001aa1202e78448f4c0bf1a48c76e556876b36f16d92ce3207eccfd61d99f2a0
+        dest: ghostty/vendor/p/1220c15e72eadd0d9085a8af134904d9a0f5dfcbed5f606ad60edc60ebeccd9706bb
+      - name: pixels
+        type: archive
+        url: https://deps.files.ghostty.org/pixels-12207ff340169c7d40c570b4b6a97db614fe47e0d83b5801a932dcd44917424c8806.tar.gz
+        sha256: 55e83b16d091082502bf149bf457f31f42092c5982650e3ffbae7b48871bf11a
+        dest: ghostty/vendor/p/12207ff340169c7d40c570b4b6a97db614fe47e0d83b5801a932dcd44917424c8806
+      - name: plasma_wayland_protocols
+        type: archive
+        url: https://deps.files.ghostty.org/plasma_wayland_protocols-12207e0851c12acdeee0991e893e0132fc87bb763969a585dc16ecca33e88334c566.tar.gz
+        sha256: 5c58ba214acd8e6bca3426dc08b022c46a8dd997b29a1b3e28badf71c20df441
+        dest: ghostty/vendor/p/12207e0851c12acdeee0991e893e0132fc87bb763969a585dc16ecca33e88334c566
+      - name: sentry
+        type: archive
+        url: https://deps.files.ghostty.org/sentry-1220446be831adcca918167647c06c7b825849fa3fba5f22da394667974537a9c77e.tar.gz
+        sha256: 2ac6497cc8d61a8d31093e47addb8c9b2c45b16b0705bb334a835b6423c318df
+        dest: ghostty/vendor/p/1220446be831adcca918167647c06c7b825849fa3fba5f22da394667974537a9c77e
+      - name: spirv_cross
+        type: archive
+        url: https://deps.files.ghostty.org/spirv_cross-1220fb3b5586e8be67bc3feb34cbe749cf42a60d628d2953632c2f8141302748c8da.tar.gz
+        sha256: b52b6fcfc45e7fa69b1f06a1362c155473444e2cc09995556b156c53ba6657e3
+        dest: ghostty/vendor/p/1220fb3b5586e8be67bc3feb34cbe749cf42a60d628d2953632c2f8141302748c8da
+      - name: utfcpp
+        type: archive
+        url: https://deps.files.ghostty.org/utfcpp-1220d4d18426ca72fc2b7e56ce47273149815501d0d2395c2a98c726b31ba931e641.tar.gz
+        sha256: ffc668a310e77607d393f3c18b32715f223da1eac4c4d6e0579a11df8e6b59cf
+        dest: ghostty/vendor/p/1220d4d18426ca72fc2b7e56ce47273149815501d0d2395c2a98c726b31ba931e641
+      - name: vaxis-dc0a228a5544988d4a920cfb40be9cd28db41423
+        type: git
+        url: https://github.com/rockorager/libvaxis
+        commit: dc0a228a5544988d4a920cfb40be9cd28db41423
+        dest: ghostty/vendor/p/1220c72c1697dd9008461ead702997a15d8a1c5810247f02e7983b9f74c6c6e4c087
+      - name: vaxis-2237a7059eae99e9f132dd5acd1555e49d6c7d93
+        type: git
+        url: https://github.com/rockorager/libvaxis
+        commit: 2237a7059eae99e9f132dd5acd1555e49d6c7d93
+        dest: ghostty/vendor/p/1220f5aec880d4f430cc1597ede88f1530da69e39a4986080e976b0c7b919c2ebfeb
+      - name: vulkan_headers
+        type: archive
+        url: https://github.com/mitchellh/vulkan-headers/archive/04c8a0389d5a0236a96312988017cd4ce27d8041.tar.gz
+        sha256: 2beceb46e7601c5ba438ce849f54ad45844c35891e464faa1d35efad7686f855
+        dest: ghostty/vendor/p/122004bfd4c519dadfb8e6281a42fc34fd1aa15aea654ea8a492839046f9894fa2cf
+      - name: wayland
+        type: archive
+        url: https://deps.files.ghostty.org/wayland-9cb3d7aa9dc995ffafdbdef7ab86a949d0fb0e7d.tar.gz
+        sha256: ea4191d68e437677e51f3aacde27829810144e931d397a327dc6035e2c39c50d
+        dest: ghostty/vendor/p/12202cdac858abc52413a6c6711d5026d2d3c8e13f95ca2c327eade0736298bb021f
+      - name: wayland_headers
+        type: archive
+        url: https://github.com/mitchellh/wayland-headers/archive/5f991515a29f994d87b908115a2ab0b899474bd1.tar.gz
+        sha256: b858a52d98a72a466de917554d5de5526269ce9b300dd16f6b6d85bf053f5d02
+        dest: ghostty/vendor/p/1220b3164434d2ec9db146a40bf3a30f490590d68fa8529776a3138074f0da2c11ca
+      - name: wayland_protocols
+        type: archive
+        url: https://deps.files.ghostty.org/wayland-protocols-258d8f88f2c8c25a830c6316f87d23ce1a0f12d9.tar.gz
+        sha256: 5cedcadde81b75e60f23e5e83b5dd2b8eb4efb9f8f79bd7a347d148aeb0530f8
+        dest: ghostty/vendor/p/12201a57c6ce0001aa034fa80fba3e1cd2253c560a45748f4f4dd21ff23b491cddef
+      - name: wuffs
+        type: archive
+        url: https://deps.files.ghostty.org/wuffs-122037b39d577ec2db3fd7b2130e7b69ef6cc1807d68607a7c232c958315d381b5cd.tar.gz
+        sha256: 9e4cd20abe96e6c4c6ede9c3057108860126e7be2e2c3e35515476c250be1c13
+        dest: ghostty/vendor/p/122037b39d577ec2db3fd7b2130e7b69ef6cc1807d68607a7c232c958315d381b5cd
+      - name: x11_headers
+        type: archive
+        url: https://github.com/mitchellh/x11-headers/archive/2ffbd62d82ff73ec929dd8de802bc95effa0ef88.tar.gz
+        sha256: 1215766e64d8fce318375c04ba5df9803d214204bf025dbada33b7a55af43be7
+        dest: ghostty/vendor/p/122089c326186c84aa2fd034b16abc38f3ebf4862d9ae106dc1847ac44f557b36465
+      - name: xcode_frameworks
+        type: archive
+        url: https://github.com/mitchellh/xcode-frameworks/archive/69801c154c39d7ae6129ea1ba8fe1afe00585fc8.tar.gz
+        sha256: 98ffc8d9ca0be7b5099bfdfee10f2c3c0810c24f15e3333e4b8541053ad7d93a
+        dest: ghostty/vendor/p/12202adbfecdad671d585c9a5bfcbd5cdf821726779430047742ce1bf94ad67d19cb
+      - name: z2d
+        type: archive
+        url: https://deps.files.ghostty.org/z2d-12201f0d542e7541cf492a001d4d0d0155c92f58212fbcb0d224e95edeba06b5416a.tar.gz
+        sha256: 3f4509e7844efef5720daf9490197e4043a3ce830c10548e4dec503ffb815df7
+        dest: ghostty/vendor/p/12201f0d542e7541cf492a001d4d0d0155c92f58212fbcb0d224e95edeba06b5416a
+      - name: zf
+        type: archive
+        url: https://deps.files.ghostty.org/zf-1220edc3b8d8bedbb50555947987e5e8e2f93871ca3c8e8d4cc8f1377c15b5dd35e8.tar.gz
+        sha256: fe82ebc98dd541f8dbb508be50ffa7e85253540fd8c487ad8cefba3afae1ebf1
+        dest: ghostty/vendor/p/1220edc3b8d8bedbb50555947987e5e8e2f93871ca3c8e8d4cc8f1377c15b5dd35e8
+      - name: zg
+        type: archive
+        url: https://codeberg.org/atman/zg/archive/v0.13.2.tar.gz
+        sha256: db1f614fb6d8abd2896162d539fdb56be42f4c6fc5ec7593f982b5e48311ccd6
+        dest: ghostty/vendor/p/122055beff332830a391e9895c044d33b15ea21063779557024b46169fb1984c6e40
+      - name: zigimg-3a667bdb3d7f0955a5a51c8468eac83210c1439e
+        type: git
+        url: https://github.com/zigimg/zigimg
+        commit: 3a667bdb3d7f0955a5a51c8468eac83210c1439e
+        dest: ghostty/vendor/p/1220dd654ef941fc76fd96f9ec6adadf83f69b9887a0d3f4ee5ac0a1a3e11be35cf5
+      - name: zig_js
+        type: archive
+        url: https://deps.files.ghostty.org/zig_js-12205a66d423259567764fa0fc60c82be35365c21aeb76c5a7dc99698401f4f6fefc.tar.gz
+        sha256: 7f235e0956c2f5401a28963a261019953d00e3bf4cfc029830f2161196c3583d
+        dest: ghostty/vendor/p/12205a66d423259567764fa0fc60c82be35365c21aeb76c5a7dc99698401f4f6fefc
+      - name: ziglyph
+        type: archive
+        url: https://deps.files.ghostty.org/ziglyph-b89d43d1e3fb01b6074bc1f7fc980324b04d26a5.tar.gz
+        sha256: 72c7bdf3e16df105235fe3fcf32c987dac49389190f4ced89b0ee31710f3f3d9
+        dest: ghostty/vendor/p/12207831bce7d4abce57b5a98e8f3635811cfefd160bca022eb91fe905d36a02cf25
+      - name: zig_objc
+        type: archive
+        url: https://deps.files.ghostty.org/zig_objc-1220e17e64ef0ef561b3e4b9f3a96a2494285f2ec31c097721bf8c8677ec4415c634.tar.gz
+        sha256: 1fe1c86e1d93db7bb3aec83dff5fef97d22bd470806b6a73793c7ace4b491fd4
+        dest: ghostty/vendor/p/1220e17e64ef0ef561b3e4b9f3a96a2494285f2ec31c097721bf8c8677ec4415c634
+      - name: zig_wayland
+        type: archive
+        url: https://deps.files.ghostty.org/zig-wayland-fbfe3b4ac0b472a27b1f1a67405436c58cbee12d.tar.gz
+        sha256: 46d032b2da8afc645822ab932b529f0fbad1482adfbb302f083d59f4313595d7
+        dest: ghostty/vendor/p/12209ca054cb1919fa276e328967f10b253f7537c4136eb48f3332b0f7cf661cad38
+      - name: zlib
+        type: archive
+        url: https://deps.files.ghostty.org/zlib-1220fed0c74e1019b3ee29edae2051788b080cd96e90d56836eea857b0b966742efb.tar.gz
+        sha256: 17e88863f3600672ab49182f217281b6fc4d3c762bde361935e436a95214d05c
+        dest: ghostty/vendor/p/1220fed0c74e1019b3ee29edae2051788b080cd96e90d56836eea857b0b966742efb
