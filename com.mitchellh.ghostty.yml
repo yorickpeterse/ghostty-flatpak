@@ -37,7 +37,7 @@ modules:
     build-options:
       append-path: /usr/lib/sdk/ziglang
     build-commands:
-      - cd ghostty && patch -p1 --forward < ../fix-exec-env.patch
+      - cd ghostty && patch -p1 --forward < ../6658.patch
       # The listed integrations are _disabled_ such that we _do_ build them from
       # source. This way we don't have to add each library as an explicit
       # dependency, simplifying the build process.
@@ -62,7 +62,7 @@ modules:
         path: data
       - type: archive
         url: https://github.com/ghostty-org/ghostty/releases/download/tip/ghostty-source.tar.gz
-        sha256: 3791e5dc68f646858609793e5ee20ffff2db781bbd1cd39b1b9960b09b0b7661
+        sha256: 056b94008555bd55fe69045ca0a1c0976367d719f81f6f7fd08b98b45541fd24
         dest: ghostty
       # Zig dependencies
       - name: breakpad
